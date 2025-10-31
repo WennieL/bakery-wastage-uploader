@@ -4,9 +4,35 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bakery Wastage Uploader</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        background: #f9fafb;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+      }
+      #root {
+        width: 100%;
+        max-width: 480px;
+        padding: 2rem;
+        background: white;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/App.jsx"></script>
+    <div id="root">Loading...</div>
+
+    <!-- React CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- 你的 React 程式 -->
+    <script type="text/babel" src="./App.jsx"></script>
   </body>
 </html>
