@@ -1,6 +1,6 @@
-import { useState } from "react";
+const { useState } = React;
 
-export default function WastageUploadForm() {
+function WastageUploadForm() {
   const [store, setStore] = useState("");
   const [employee, setEmployee] = useState("");
   const [comment, setComment] = useState("");
@@ -21,14 +21,11 @@ export default function WastageUploadForm() {
     formData.append("photo", photo);
 
     try {
-      setStatus("📤 Uploading...");
-      const res = await fetch(
-        "https://event-tracker-nt.zeabur.app/webhook-test/wastage/upload",
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
+      setStatus("⏳ Uploading...");
+      const res = await fetch("https://event-tracker-nt.zeabur.app/webhook-test/wastage/upload", {
+        method: "POST",
+        body: formData,
+      });
 
       if (res.ok) {
         setStatus("✅ Upload successful! Data sent to system.");
@@ -42,73 +39,30 @@ export default function WastageUploadForm() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-6">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white shadow-xl rounded-xl p-6 w-full max-w-md flex flex-col gap-4"
-      >
-        <h1 className="text-2xl font-semibold text-center mb-2">
-          Bakery Wastage Upload
-        </h1>
+    <div className="container">
+      <h2>Bakery Wastage Upload</h2>
+      <form onSubmit={handleSubmit}>
+        <label>Store Name:</label>
+        <input value={store} onChange={(e) => setStore(e.target.value)} placeholder="e.g., Carlton North" required />
 
-        <label className="flex flex-col">
-          Store
-          <select
-            value={store}
-            onChange={(e) => setStore(e.target.value)}
-            className="border rounded p-2 mt-1"
-            required
-          >
-            <option value="">Select Store</option>
-            <option value="Carlton North">Carlton North</option>
-            <option value="Essendon">Essendon</option>
-            <option value="Moonee Ponds">Moonee Ponds</option>
-          </select>
-        </label>
+        <label>Employee Name:</label>
+        <input value={employee} onChange={(e) => setEmployee(e.target.value)} placeholder="e.g., Amy" required />
 
-        <label className="flex flex-col">
-          Employee Name
-          <input
-            type="text"
-            value={employee}
-            onChange={(e) => setEmployee(e.target.value)}
-            className="border rounded p-2 mt-1"
-            placeholder="Enter your name"
-            required
-          />
-        </label>
+        <label>Comment:</label>
+        <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Optional" />
 
-        <label className="flex flex-col">
-          Comment
-          <textarea
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            className="border rounded p-2 mt-1"
-            placeholder="Any notes?"
-          />
-        </label>
+        <label>Upload Photo:</label>
+        <input type="file" accept="image/*" onChange={(e) => setPhoto(e.target.files[0])} required />
 
-        <label className="flex flex-col">
-          Photo
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={(e) => setPhoto(e.target.files[0])}
-            className="border rounded p-2 mt-1"
-            required
-          />
-        </label>
-
-        <button
-          type="submit"
-          className="bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
-        >
-          Upload
-        </button>
-
-        {status && <p className="text-center text-sm mt-2">{status}</p>}
+        <button type="submit">Upload</button>
       </form>
+
+      {status && <p className="status">{status}</p>}
     </div>
   );
 }
+
+const App = () => <WastageUploadForm />;
+
+// ✅ 核心：告訴 React 把 App 掛載進 root！
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
