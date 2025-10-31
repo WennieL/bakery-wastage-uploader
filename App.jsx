@@ -1,6 +1,6 @@
-import { useState } from "react";
+function WastageUploadForm() {
+  const { useState } = React;
 
-export default function WastageUploadForm() {
   const [store, setStore] = useState("");
   const [employee, setEmployee] = useState("");
   const [comment, setComment] = useState("");
@@ -55,7 +55,9 @@ export default function WastageUploadForm() {
         onSubmit={handleSubmit}
         className="bg-white shadow-xl rounded-2xl p-6 flex flex-col gap-4 w-full max-w-md"
       >
-        <h2 className="text-xl font-semibold text-center">📸 Bakery Wastage Upload</h2>
+        <h2 className="text-xl font-semibold text-center">
+          📸 Bakery Wastage Upload
+        </h2>
 
         {/* Store dropdown */}
         <div>
@@ -110,7 +112,7 @@ export default function WastageUploadForm() {
           <input
             type="file"
             accept="image/*"
-            capture="environment" // 📷 手機上會自動開相機
+            capture="environment"
             onChange={(e) => setPhoto(e.target.files[0])}
             className="w-full border rounded-lg p-2"
             required
