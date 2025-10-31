@@ -1,29 +1,18 @@
-const { useState } = React;
+import { useState } from "react";
 
-function WastageUploadForm() {
-  // 🏪 店名對應員工清單
-  const storeEmployees = {
-    NT: ["Amy", "John", "Lisa"],
-    KT: ["Bella", "Charlie", "Ethan"],
-    BC: ["Dylan", "Hannah", "Zoe"],
-    BB: ["Jack", "Mia", "Oliver"],
-    GP: ["Sophia", "Leo", "Emily"],
-  };
-
+export default function WastageUploadForm() {
   const [store, setStore] = useState("");
   const [employee, setEmployee] = useState("");
   const [comment, setComment] = useState("");
   const [photo, setPhoto] = useState(null);
   const [status, setStatus] = useState("");
 
-  // 選擇分店時重設員工
-  const handleStoreChange = (e) => {
-    setStore(e.target.value);
-    setEmployee("");
-  };
+  const stores = ["NT", "KT", "BC", "BB", "GP"];
+  const employees = ["Ethan", "Bella", "Mia", "Leo", "Amy"];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!store || !employee || !photo) {
       alert("Please fill all required fields.");
       return;
@@ -37,13 +26,20 @@ function WastageUploadForm() {
 
     try {
       setStatus("⏳ Uploading...");
-      const res = await fetch("https://event-tracker-nt.zeabur.app/webhook/wastage/upload", {
-        method: "POST",
-        body: formData,
-      });
+      const res = await fetch(
+        "https://event-tracker-nt.zeabur.app/webhook/wastage/upload",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
 
       if (res.ok) {
         setStatus("✅ Upload successful! Data sent to system.");
+        setStore("");
+        setEmployee("");
+        setComment("");
+        setPhoto(null);
       } else {
         setStatus("❌ Upload failed. Please try again.");
       }
@@ -54,61 +50,82 @@ function WastageUploadForm() {
   };
 
   return (
-    <div className="container">
-      <h2>Bakery Wastage Upload</h2>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white shadow-xl rounded-2xl p-6 flex flex-col gap-4 w-full max-w-md"
+      >
+        <h2 className="text-xl font-semibold text-center">📸 Bakery Wastage Upload</h2>
 
-      <form onSubmit={handleSubmit}>
-        {/* 🏪 分店下拉 */}
-        <label>Store:</label>
-        <select value={store} onChange={handleStoreChange} required>
-          <option value="">Select Store</option>
-          {Object.keys(storeEmployees).map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-
-        {/* 👩‍🍳 員工下拉 */}
-        <label>Employee:</label>
-        <select
-          value={employee}
-          onChange={(e) => setEmployee(e.target.value)}
-          required
-          disabled={!store}
-        >
-          <option value="">Select Employee</option>
-          {store &&
-            storeEmployees[store].map((emp) => (
-              <option key={emp} value={emp}>
-                {emp}
+        {/* Store dropdown */}
+        <div>
+          <label className="block mb-1 font-medium">Store</label>
+          <select
+            value={store}
+            onChange={(e) => setStore(e.target.value)}
+            className="w-full border rounded-lg p-2"
+            required
+          >
+            <option value="">Select store</option>
+            {stores.map((s) => (
+              <option key={s} value={s}>
+                {s}
               </option>
             ))}
-        </select>
+          </select>
+        </div>
 
-        <label>Comment:</label>
-        <textarea
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          placeholder="Optional comment"
-        />
+        {/* Employee dropdown */}
+        <div>
+          <label className="block mb-1 font-medium">Employee</label>
+          <select
+            value={employee}
+            onChange={(e) => setEmployee(e.target.value)}
+            className="w-full border rounded-lg p-2"
+            required
+          >
+            <option value="">Select employee</option>
+            {employees.map((e) => (
+              <option key={e} value={e}>
+                {e}
+              </option>
+            ))}
+          </select>
+        </div>
 
-        <label>Upload Photo:</label>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => setPhoto(e.target.files[0])}
-          required
-        />
+        {/* Comment box */}
+        <div>
+          <label className="block mb-1 font-medium">Comment</label>
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="e.g. End of day leftovers"
+            className="w-full border rounded-lg p-2"
+          />
+        </div>
 
-        <button type="submit">Upload</button>
+        {/* Photo upload / camera input */}
+        <div>
+          <label className="block mb-1 font-medium">Upload Photo</label>
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment" // 📷 手機上會自動開相機
+            onChange={(e) => setPhoto(e.target.files[0])}
+            className="w-full border rounded-lg p-2"
+            required
+          />
+        </div>
+
+        <button
+          type="submit"
+          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition"
+        >
+          Upload
+        </button>
+
+        <p className="text-center text-sm text-gray-600">{status}</p>
       </form>
-
-      {status && <p className="status">{status}</p>}
     </div>
   );
 }
-
-const App = () => <WastageUploadForm />;
-
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
