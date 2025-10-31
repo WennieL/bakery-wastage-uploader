@@ -2,10 +2,14 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bakery Wastage Uploader</title>
+
+    <!-- React + Babel -->
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
     <style>
       body {
         font-family: sans-serif;
@@ -49,8 +53,18 @@
       }
     </style>
   </head>
+
   <body>
     <div id="root">Loading...</div>
+
+    <!-- 載入 React 元件 -->
     <script type="text/babel" src="./App.jsx"></script>
+
+    <!-- 挂載 React 組件 -->
+    <script type="text/babel">
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      // ⚠️ 注意：App.jsx 檔案裡的 component 名稱必須是 `WastageUploadForm`
+      root.render(<WastageUploadForm />);
+    </script>
   </body>
 </html>
