@@ -37,7 +37,7 @@ function WastageUploadForm() {
 
     try {
       setStatus("⏳ Uploading...");
-      const res = await fetch("https://event-tracker-nt.zeabur.app/webhook-test/wastage/upload", {
+      const res = await fetch("https://event-tracker-nt.zeabur.app/webhook/wastage/upload", {
         method: "POST",
         body: formData,
       });
