@@ -1,14 +1,13 @@
 function WastageUploadForm() {
-  const { useState, useRef } = React;
+  const { useState, useEffect, useRef } = React;
   const [store, setStore] = useState("");
   const [employee, setEmployee] = useState("");
   const [comment, setComment] = useState("");
   const [photo, setPhoto] = useState(null);
   const [preview, setPreview] = useState(null);
   const [status, setStatus] = useState("");
-  const [cropActive, setCropActive] = useState(false);
-  const canvasRef = useRef(null);
   const imageRef = useRef(null);
+  const cropperRef = useRef(null);
 
   const stores = ["NT", "KT", "BC", "BB", "GP"];
   const employees = ["Ethan", "Bella", "Mia", "Leo", "Amy"];
@@ -16,45 +15,44 @@ function WastageUploadForm() {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      const url = URL.createObjectURL(file);
       setPhoto(file);
-      setPreview(URL.createObjectURL(file));
-      setCropActive(true);
+      setPreview(url);
     }
   };
 
-  // ✂️ 壓縮圖片
-  const compressImage = (image, mimeType = "image/jpeg", quality = 0.7, maxSize = 1024) => {
-    const canvas = document.createElement("canvas");
-    const scale = Math.min(maxSize / image.width, maxSize / image.height, 1);
-    canvas.width = image.width * scale;
-    canvas.height = image.height * scale;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-    return new Promise((resolve) => {
-      canvas.toBlob((blob) => resolve(blob), mimeType, quality);
+  useEffect(() => {
+    if (preview && imageRef.current) {
+      if (cropperRef.current) cropperRef.current.destroy();
+      cropperRef.current = new Cropper(imageRef.current, {
+        aspectRatio: 1,
+        viewMode: 1,
+        dragMode: "move",
+        autoCropArea: 1,
+      });
+    }
+  }, [preview]);
+
+  const handleCrop = async () => {
+    if (!cropperRef.current) return;
+
+    const canvas = cropperRef.current.getCroppedCanvas({
+      width: 1024,
+      height: 1024,
     });
+
+    // 壓縮
+    const blob = await new Promise((resolve) =>
+      canvas.toBlob((b) => resolve(b), "image/jpeg", 0.7)
+    );
+
+    const newFile = new File([blob], "cropped.jpg", { type: "image/jpeg" });
+    setPhoto(newFile);
+    setPreview(URL.createObjectURL(newFile));
+    cropperRef.current.destroy();
+    cropperRef.current = null;
   };
 
-  // ✂️ 剪裁功能
-  const handleCrop = () => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    const img = imageRef.current;
-    const size = Math.min(img.width, img.height);
-    canvas.width = 1024;
-    canvas.height = 1024;
-    ctx.drawImage(img, (img.width - size) / 2, (img.height - size) / 2, size, size, 0, 0, 1024, 1024);
-
-    canvas.toBlob(async (blob) => {
-      const compressed = await compressImage(img);
-      const newFile = new File([compressed], "cropped.jpg", { type: "image/jpeg" });
-      setPhoto(newFile);
-      setPreview(URL.createObjectURL(newFile));
-      setCropActive(false);
-    }, "image/jpeg");
-  };
-
-  // 📤 上傳邏輯
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!store || !employee || !photo) {
@@ -70,10 +68,13 @@ function WastageUploadForm() {
 
     try {
       setStatus("⏳ Uploading...");
-      const res = await fetch("https://event-tracker-nt.zeabur.app/webhook/wastage/upload", {
-        method: "POST",
-        body: formData,
-      });
+      const res = await fetch(
+        "https://event-tracker-nt.zeabur.app/webhook/wastage/upload",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
 
       if (res.ok) {
         setStatus("✅ Upload successful!");
@@ -110,7 +111,7 @@ function WastageUploadForm() {
           padding: "24px",
           boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
           width: "100%",
-          maxWidth: "400px",
+          maxWidth: "420px",
           display: "flex",
           flexDirection: "column",
           gap: "12px",
@@ -152,7 +153,7 @@ function WastageUploadForm() {
           required
         />
 
-        {/* 預覽與剪裁區 */}
+        {/* 裁剪預覽 */}
         {preview && (
           <div style={{ textAlign: "center", marginTop: "10px" }}>
             <img
@@ -160,34 +161,29 @@ function WastageUploadForm() {
               src={preview}
               alt="Preview"
               style={{
-                borderRadius: "8px",
                 maxWidth: "100%",
-                maxHeight: "200px",
-                objectFit: "contain",
+                maxHeight: "300px",
+                borderRadius: "8px",
                 border: "1px solid #ddd",
               }}
             />
-            {cropActive && (
-              <button
-                type="button"
-                onClick={handleCrop}
-                style={{
-                  marginTop: "10px",
-                  background: "#16a34a",
-                  color: "white",
-                  padding: "8px 12px",
-                  borderRadius: "6px",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                ✂️ Crop & Compress
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={handleCrop}
+              style={{
+                marginTop: "10px",
+                background: "#16a34a",
+                color: "white",
+                padding: "8px 12px",
+                borderRadius: "6px",
+                border: "none",
+                cursor: "pointer",
+              }}
+            >
+              ✂️ Confirm Crop
+            </button>
           </div>
         )}
-
-        <canvas ref={canvasRef} style={{ display: "none" }}></canvas>
 
         <button
           type="submit"
