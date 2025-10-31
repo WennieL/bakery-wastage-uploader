@@ -1,207 +1,327 @@
-function WastageUploadForm() {
-  const { useState, useEffect, useRef } = React;
-  const [store, setStore] = useState("");
-  const [employee, setEmployee] = useState("");
-  const [comment, setComment] = useState("");
-  const [photo, setPhoto] = useState(null);
-  const [preview, setPreview] = useState(null);
-  const [status, setStatus] = useState("");
-  const imageRef = useRef(null);
-  const cropperRef = useRef(null);
+/**
+ * Wastage Upload Form
+ * * Integrates photo cropping (Cropper.js) and image compression features,
+ * ensuring the data uploaded to the n8n Webhook is small and correctly formatted.
+ * * Uses Tailwind CSS for responsive layout and styling.
+ */
+import React, { useState, useEffect, useRef } from 'react';
+// Removed: import Cropper from 'cropperjs'; 
+// Removed: import 'cropperjs/dist/cropper.css'; 
 
-  const stores = ["NT", "KT", "BC", "BB", "GP"];
-  const employees = ["Ethan", "Bella", "Mia", "Leo", "Amy"];
+// Loads Tailwind CSS and Cropper.js scripts (uses window.Cropper)
+const ScriptLoader = () => (
+    <>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+        {/* ADDED: Cropper.js CSS via CDN */}
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" />
+        {/* ADDED: Cropper.js JS via CDN */}
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+    </>
+);
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setPhoto(file);
-      setPreview(url);
+
+// Status message types
+const StatusMessage = ({ type, message }) => {
+    let bgColor, textColor, icon;
+    switch (type) {
+        case 'error':
+            bgColor = 'bg-red-100';
+            textColor = 'text-red-700';
+            icon = '❌';
+            break;
+        case 'success':
+            bgColor = 'bg-green-100';
+            textColor = 'text-green-700';
+            icon = '✅';
+            break;
+        case 'loading':
+            bgColor = 'bg-blue-100';
+            textColor = 'text-blue-700';
+            icon = '⏳';
+            break;
+        default:
+            bgColor = 'bg-gray-100';
+            textColor = 'text-gray-700';
+            icon = 'ℹ️';
     }
-  };
 
-  useEffect(() => {
-    if (preview && imageRef.current) {
-      if (cropperRef.current) cropperRef.current.destroy();
-      cropperRef.current = new Cropper(imageRef.current, {
-        aspectRatio: 1,
-        viewMode: 1,
-        dragMode: "move",
-        autoCropArea: 1,
-      });
-    }
-  }, [preview]);
-
-  const handleCrop = async () => {
-    if (!cropperRef.current) return;
-
-    const canvas = cropperRef.current.getCroppedCanvas({
-      width: 1024,
-      height: 1024,
-    });
-
-    // 壓縮
-    const blob = await new Promise((resolve) =>
-      canvas.toBlob((b) => resolve(b), "image/jpeg", 0.7)
+    return (
+        <div className={`p-3 rounded-lg ${bgColor} ${textColor} text-sm font-medium transition-opacity duration-300`}>
+            {icon} {message}
+        </div>
     );
+};
 
-    const newFile = new File([blob], "cropped.jpg", { type: "image/jpeg" });
-    setPhoto(newFile);
-    setPreview(URL.createObjectURL(newFile));
-    cropperRef.current.destroy();
-    cropperRef.current = null;
-  };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!store || !employee || !photo) {
-      alert("📋 Please fill all required fields.");
-      return;
-    }
+// Main Component: Renamed to App and exported as default
+export default function App() {
+    // ⚠️ Replace with your n8n Webhook URL (Production or Test URL)
+    const WEBHOOK_URL = "https://event-tracker-nt.zeabur.app/webhook/wastage/upload"; 
 
-    const formData = new FormData();
-    formData.append("store", store);
-    formData.append("employee", employee);
-    formData.append("comment", comment || "");
-    formData.append("photo", photo);
+    const [store, setStore] = useState("");
+    const [employee, setEmployee] = useState("");
+    const [comment, setComment] = useState("");
+    const [photo, setPhoto] = useState(null); // Final File/Blob for upload
+    const [originalFile, setOriginalFile] = useState(null); // Original file selected
+    const [preview, setPreview] = useState(null); // URL used for Cropper
+    const [status, setStatus] = useState({ type: 'info', message: 'Awaiting data input...' });
+    const imageRef = useRef(null);
+    const cropperRef = useRef(null);
 
-    try {
-      setStatus("⏳ Uploading...");
-      const res = await fetch(
-        "https://event-tracker-nt.zeabur.app/webhook/wastage/upload",
-        {
-          method: "POST",
-          body: formData,
+    const stores = ["NT", "KT", "BC", "BB", "GP"];
+    const employees = ["Ethan", "Bella", "Mia", "Leo", "Amy"];
+
+    // Handle file selection
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const url = URL.createObjectURL(file);
+            // Store the original file for cropping
+            setOriginalFile(file); 
+            setPhoto(null); // Clear the cropped photo state
+            setPreview(url);
+            setStatus({ type: 'info', message: 'Please crop the photo to optimize the identification area.' });
         }
-      );
+    };
 
-      if (res.ok) {
-        setStatus("✅ Upload successful!");
-        setStore("");
-        setEmployee("");
-        setComment("");
-        setPhoto(null);
-        setPreview(null);
-      } else {
-        setStatus("❌ Upload failed. Please try again.");
-      }
-    } catch (err) {
-      console.error(err);
-      setStatus("⚠️ Error uploading file.");
-    }
-  };
+    // Initialize Cropper
+    useEffect(() => {
+        // Use window.Cropper since the library is loaded via CDN
+        if (preview && imageRef.current && window.Cropper) {
+            // Destroy the old Cropper instance
+            if (cropperRef.current) {
+                cropperRef.current.destroy();
+                cropperRef.current = null;
+            }
+            
+            // Create a new Cropper instance
+            cropperRef.current = new window.Cropper(imageRef.current, { // Use window.Cropper
+                aspectRatio: NaN, // Allow free aspect ratio
+                viewMode: 1, // Restrict crop box to image area
+                dragMode: "move",
+                autoCropArea: 1,
+            });
+        }
+        
+        // Cleanup function: destroy Cropper on component unmount or preview change
+        return () => {
+             if (cropperRef.current) {
+                cropperRef.current.destroy();
+                cropperRef.current = null;
+            }
+        };
+    }, [preview]);
 
-  return (
-    <div
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#f9fafb",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: "1rem",
-      }}
-    >
-      <form
-        onSubmit={handleSubmit}
-        style={{
-          background: "white",
-          borderRadius: "16px",
-          padding: "24px",
-          boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
-          width: "100%",
-          maxWidth: "420px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "12px",
-        }}
-      >
-        <h2 style={{ textAlign: "center", fontWeight: "bold", fontSize: "20px" }}>
-          📸 Bakery Wastage Upload
-        </h2>
+    // Handle cropping and compression
+    const handleCropAndCompress = async () => {
+        if (!cropperRef.current) return;
 
-        <label>Store</label>
-        <select value={store} onChange={(e) => setStore(e.target.value)} required>
-          <option value="">Select store</option>
-          {stores.map((s) => (
-            <option key={s}>{s}</option>
-          ))}
-        </select>
+        setStatus({ type: 'loading', message: 'Cropping and compressing image...' });
+        
+        const canvas = cropperRef.current.getCroppedCanvas({
+            // Limit max width to reduce file size
+            maxWidth: 1600, 
+            maxHeight: 1600,
+        });
 
-        <label>Employee</label>
-        <select value={employee} onChange={(e) => setEmployee(e.target.value)} required>
-          <option value="">Select employee</option>
-          {employees.map((e) => (
-            <option key={e}>{e}</option>
-          ))}
-        </select>
+        // Compress to JPEG, 70% quality (0.7)
+        const blob = await new Promise((resolve) =>
+            canvas.toBlob((b) => resolve(b), "image/jpeg", 0.7)
+        );
 
-        <label>Comment</label>
-        <textarea
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          placeholder="e.g. End of day leftovers"
-        />
+        // Create a new File object for upload
+        const newFile = new File([blob], `wastage_${Date.now()}.jpg`, { type: "image/jpeg" });
+        
+        // Set the final file for upload
+        setPhoto(newFile);
+        
+        // Destroy Cropper instance, show preview of the compressed image
+        cropperRef.current.destroy();
+        cropperRef.current = null;
+        setPreview(URL.createObjectURL(newFile)); // Update preview to the compressed image
 
-        <label>Take Photo</label>
-        <input
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={handleFileChange}
-          required
-        />
+        setStatus({ type: 'info', message: `✅ Image cropped and compressed (${(newFile.size / 1024).toFixed(1)} KB). Please click Upload.` });
+    };
 
-        {/* 裁剪預覽 */}
-        {preview && (
-          <div style={{ textAlign: "center", marginTop: "10px" }}>
-            <img
-              ref={imageRef}
-              src={preview}
-              alt="Preview"
-              style={{
-                maxWidth: "100%",
-                maxHeight: "300px",
-                borderRadius: "8px",
-                border: "1px solid #ddd",
-              }}
-            />
-            <button
-              type="button"
-              onClick={handleCrop}
-              style={{
-                marginTop: "10px",
-                background: "#16a34a",
-                color: "white",
-                padding: "8px 12px",
-                borderRadius: "6px",
-                border: "none",
-                cursor: "pointer",
-              }}
+    // Handle form submission
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        if (!store || !employee) {
+            setStatus({ type: 'error', message: "📋 Please select Store and Employee." });
+            return;
+        }
+        if (!photo) {
+            setStatus({ type: 'error', message: "📸 Please select and confirm crop for the photo." });
+            return;
+        }
+
+        const formData = new FormData();
+        // Additional data passed to the n8n Webhook (n8n Webhook automatically parses these fields)
+        formData.append("store", store); 
+        formData.append("employee", employee);
+        formData.append("comment", comment || "");
+        
+        // CRITICAL: The image file must be 'photo', matching the n8n Webhook Binary Field Name
+        formData.append("photo", photo); 
+
+        try {
+            setStatus({ type: 'loading', message: "⏳ Uploading and initiating AI analysis..." });
+            
+            const res = await fetch(WEBHOOK_URL, {
+                method: "POST",
+                body: formData,
+            });
+
+            if (res.ok) {
+                // Since the Webhook is set to respond Immediately, this will typically succeed quickly
+                setStatus({ type: 'success', message: "✅ Upload successful! Backend AI analysis has started. Data will be written to Google Sheet shortly." });
+                
+                // Clear form
+                setStore("");
+                setEmployee("");
+                setComment("");
+                setPhoto(null);
+                setOriginalFile(null);
+                setPreview(null);
+            } else {
+                const errorText = await res.text();
+                // Limit error message length to prevent UI overflow
+                const displayError = errorText.length > 100 ? errorText.substring(0, 100) + '...' : errorText;
+                setStatus({ type: 'error', message: `❌ Upload failed: HTTP ${res.status}. Error: ${displayError}` });
+            }
+        } catch (err) {
+            console.error(err);
+            setStatus({ type: 'error', message: "⚠️ Network error, please check your connection." });
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-gray-50 flex justify-center items-center p-4 font-inter">
+            <form
+                onSubmit={handleSubmit}
+                className="bg-white rounded-xl shadow-2xl p-6 md:p-8 w-full max-w-md flex flex-col gap-4 border border-gray-100"
             >
-              ✂️ Confirm Crop
-            </button>
-          </div>
-        )}
+                <h2 className="text-2xl font-bold text-center text-gray-800">
+                    📸 Wastage Data Upload
+                </h2>
+                <p className="text-sm text-center text-gray-500">
+                    Select a photo, crop it, confirm store and employee, and start AI data analysis.
+                </p>
 
-        <button
-          type="submit"
-          style={{
-            background: "#2563eb",
-            color: "white",
-            fontWeight: "600",
-            padding: "10px",
-            borderRadius: "8px",
-            border: "none",
-            cursor: "pointer",
-          }}
-        >
-          Upload
-        </button>
+                {/* Status Message */}
+                {status.message && <StatusMessage type={status.type} message={status.message} />}
 
-        {status && <p style={{ textAlign: "center" }}>{status}</p>}
-      </form>
-    </div>
-  );
+                {/* Store Dropdown */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="store">Store*</label>
+                    <select
+                        id="store"
+                        value={store}
+                        onChange={(e) => setStore(e.target.value)}
+                        required
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                    >
+                        <option value="">Select Store</option>
+                        {stores.map((s) => (
+                            <option key={s} value={s}>{s}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Employee Dropdown */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="employee">Employee*</label>
+                    <select
+                        id="employee"
+                        value={employee}
+                        onChange={(e) => setEmployee(e.target.value)}
+                        required
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                    >
+                        <option value="">Select Employee</option>
+                        {employees.map((e) => (
+                            <option key={e} value={e}>{e}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Comment */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="comment">Comment</label>
+                    <textarea
+                        id="comment"
+                        value={comment}
+                        onChange={(e) => setComment(e.target.value)}
+                        placeholder="e.g., Weekend inventory leftovers"
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                        rows="2"
+                    />
+                </div>
+
+                {/* Photo Input */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="photoInput">Take or Select Photo (Photo)*</label>
+                    <input
+                        type="file"
+                        id="photoInput"
+                        accept="image/*"
+                        capture="environment" // Prioritize rear camera (For Mobile)
+                        onChange={handleFileChange}
+                        className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                        required={!photo} // Must select a file initially
+                    />
+                </div>
+
+                {/* Cropping Preview Area */}
+                {preview && (
+                    <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <p className="text-center text-sm font-semibold text-gray-700 mb-2">📸 Crop Area (Drag or Zoom to adjust)</p>
+                        <div className="relative w-full overflow-hidden max-h-96">
+                            <img
+                                ref={imageRef}
+                                src={preview}
+                                alt="Image to Crop"
+                                className="w-full h-auto block"
+                            />
+                        </div>
+
+                        {/* Crop Button (Visible if cropperRef exists, meaning cropping is active) */}
+                        {cropperRef.current && (
+                            <button
+                                type="button"
+                                onClick={handleCropAndCompress}
+                                className="mt-3 w-full py-2 px-4 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition duration-150"
+                            >
+                                ✂️ Confirm Crop & Compress
+                            </button>
+                        )}
+                        
+                        {/* Show final upload button after cropping */}
+                        {!cropperRef.current && photo && (
+                             <p className="text-center text-xs text-green-600 mt-2">
+                                Image is ready for upload, size: {(photo.size / 1024).toFixed(1)} KB
+                            </p>
+                        )}
+                    </div>
+                )}
+                
+                {/* Submit Button */}
+                <button
+                    type="submit"
+                    disabled={!photo || status.type === 'loading'}
+                    className={`mt-4 w-full py-3 font-extrabold rounded-xl shadow-lg transition duration-200 ${
+                        !photo || status.type === 'loading'
+                            ? 'bg-gray-400 cursor-not-allowed'
+                            : 'bg-indigo-600 hover:bg-indigo-700 text-white transform hover:scale-[1.01]'
+                    }`}
+                >
+                    {status.type === 'loading' ? '⏳ Analyzing...' : '🚀 Upload and Start AI Analysis'}
+                </button>
+
+            </form>
+            <ScriptLoader />
+        </div>
+    );
 }
