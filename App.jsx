@@ -14,7 +14,7 @@ function WastageUploadForm() {
     e.preventDefault();
 
     if (!store || !employee || !photo) {
-      alert("Please fill all required fields.");
+      alert("📋 Please fill all required fields.");
       return;
     }
 
@@ -50,23 +50,47 @@ function WastageUploadForm() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+    <div
+      style={{
+        minHeight: "100vh",
+        backgroundColor: "#f9fafb",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: "1rem",
+      }}
+    >
       <form
         onSubmit={handleSubmit}
-        className="bg-white shadow-xl rounded-2xl p-6 flex flex-col gap-4 w-full max-w-md"
+        style={{
+          background: "white",
+          borderRadius: "16px",
+          padding: "24px",
+          boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+          width: "100%",
+          maxWidth: "400px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "12px",
+        }}
       >
-        <h2 className="text-xl font-semibold text-center">
+        <h2 style={{ textAlign: "center", fontWeight: "bold", fontSize: "20px" }}>
           📸 Bakery Wastage Upload
         </h2>
 
         {/* Store dropdown */}
         <div>
-          <label className="block mb-1 font-medium">Store</label>
+          <label style={{ fontWeight: "500" }}>Store</label>
           <select
             value={store}
             onChange={(e) => setStore(e.target.value)}
-            className="w-full border rounded-lg p-2"
             required
+            style={{
+              width: "100%",
+              padding: "8px",
+              borderRadius: "8px",
+              border: "1px solid #ccc",
+            }}
           >
             <option value="">Select store</option>
             {stores.map((s) => (
@@ -79,12 +103,17 @@ function WastageUploadForm() {
 
         {/* Employee dropdown */}
         <div>
-          <label className="block mb-1 font-medium">Employee</label>
+          <label style={{ fontWeight: "500" }}>Employee</label>
           <select
             value={employee}
             onChange={(e) => setEmployee(e.target.value)}
-            className="w-full border rounded-lg p-2"
             required
+            style={{
+              width: "100%",
+              padding: "8px",
+              borderRadius: "8px",
+              border: "1px solid #ccc",
+            }}
           >
             <option value="">Select employee</option>
             {employees.map((e) => (
@@ -95,38 +124,80 @@ function WastageUploadForm() {
           </select>
         </div>
 
-        {/* Comment box */}
+        {/* Comment */}
         <div>
-          <label className="block mb-1 font-medium">Comment</label>
+          <label style={{ fontWeight: "500" }}>Comment</label>
           <textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             placeholder="e.g. End of day leftovers"
-            className="w-full border rounded-lg p-2"
+            style={{
+              width: "100%",
+              padding: "8px",
+              borderRadius: "8px",
+              border: "1px solid #ccc",
+              minHeight: "60px",
+            }}
           />
         </div>
 
-        {/* Photo upload / camera input */}
+        {/* Photo upload / camera */}
         <div>
-          <label className="block mb-1 font-medium">Upload Photo</label>
+          <label style={{ fontWeight: "500" }}>Take a Photo</label>
           <input
             type="file"
             accept="image/*"
             capture="environment"
             onChange={(e) => setPhoto(e.target.files[0])}
-            className="w-full border rounded-lg p-2"
             required
+            style={{
+              width: "100%",
+              padding: "8px",
+              borderRadius: "8px",
+              border: "1px solid #ccc",
+            }}
           />
         </div>
 
+        {/* Photo Preview */}
+        {photo && (
+          <div style={{ marginTop: "10px", textAlign: "center" }}>
+            <p style={{ fontSize: "14px", color: "#555" }}>Preview:</p>
+            <img
+              src={URL.createObjectURL(photo)}
+              alt="Preview"
+              style={{
+                borderRadius: "8px",
+                maxWidth: "100%",
+                maxHeight: "200px",
+                objectFit: "contain",
+                border: "1px solid #ddd",
+              }}
+            />
+          </div>
+        )}
+
         <button
           type="submit"
-          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition"
+          style={{
+            background: "#2563eb",
+            color: "white",
+            fontWeight: "600",
+            padding: "10px",
+            borderRadius: "8px",
+            border: "none",
+            cursor: "pointer",
+            marginTop: "10px",
+          }}
         >
           Upload
         </button>
 
-        <p className="text-center text-sm text-gray-600">{status}</p>
+        {status && (
+          <p style={{ textAlign: "center", fontSize: "14px", color: "#333" }}>
+            {status}
+          </p>
+        )}
       </form>
     </div>
   );
